@@ -283,7 +283,7 @@ app.post("/test/mapping", express.json(), (req, res) => {
       rawData: eventData
     };
 
-    logger.debug("🔍 Test mapping result:", JSON.stringify({
+    logger.debug("Test mapping result:", JSON.stringify({
       original: eventData,
       mapped: mappedData,
       accessControlEvent: accessControlEvent
@@ -297,7 +297,7 @@ app.post("/test/mapping", express.json(), (req, res) => {
     });
 
   } catch (error) {
-    logger.error(`❌ Test mapping error: ${error.message}`);
+    logger.error(`Test mapping error: ${error.message}`);
     res.status(500).json({
       error: error.message
     });
@@ -310,7 +310,7 @@ app.get("/api/events", async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = parseInt(req.query.offset) || 0;
     
-    logger.debug("🔍 API /events query parameters:", JSON.stringify({
+    logger.debug("API /events query parameters:", JSON.stringify({
       limit,
       offset,
       originalQuery: req.query
@@ -339,7 +339,7 @@ app.get("/api/events", async (req, res) => {
       }
     };
 
-    logger.debug("🔍 API /events response:", JSON.stringify({
+    logger.debug("API /events response:", JSON.stringify({
       eventCount: events.length,
       total,
       pagination: response.pagination
@@ -348,7 +348,7 @@ app.get("/api/events", async (req, res) => {
     res.json(response);
     
   } catch (error) {
-    logger.error(`❌ Database query error: ${error.message}`);
+    logger.error(`Database query error: ${error.message}`);
     res.status(500).json({
       error: "Database query error",
       message: error.message
@@ -360,7 +360,7 @@ app.get("/api/events/:id", async (req, res) => {
   try {
     const eventId = parseInt(req.params.id);
     
-    logger.debug("🔍 API /events/:id request:", JSON.stringify({
+    logger.debug("API /events/:id request:", JSON.stringify({
       eventId,
       originalParam: req.params.id
     }, null, 2));
@@ -373,11 +373,11 @@ app.get("/api/events/:id", async (req, res) => {
     });
     
     if (!event) {
-      logger.debug("🔍 Event not found:", JSON.stringify({ eventId }, null, 2));
+      logger.debug("Event not found:", JSON.stringify({ eventId }, null, 2));
       return res.status(404).json({ error: "Event not found" });
     }
     
-    logger.debug("🔍 API /events/:id response:", JSON.stringify({
+    logger.debug("API /events/:id response:", JSON.stringify({
       eventId: event.id,
       imageCount: event.images?.length || 0
     }, null, 2));
@@ -385,7 +385,7 @@ app.get("/api/events/:id", async (req, res) => {
     res.json(event);
     
   } catch (error) {
-    logger.error(`❌ Database query error: ${error.message}`);
+    logger.error(`Database query error: ${error.message}`);
     res.status(500).json({
       error: "Database query error",
       message: error.message
@@ -489,19 +489,19 @@ app.post("/webhook/recieve/httpHosts", upload.any(), async (req, res) => {
               publicUrl: imageUrl
             };
 
-            logger.debug("🔍 Image database insert data:", JSON.stringify(imageData, null, 2));
+            logger.debug("Image database insert data:", JSON.stringify(imageData, null, 2));
 
             const savedImage = await prisma.accessImage.create({
               data: imageData
             });
 
             savedImages.push(savedImage);
-            logger.info(`📸 Saved image to MinIO and DB: ${filename}`);
-            logger.info(`🔗 Image URL: ${imageUrl}`);
-            logger.debug("🔍 Saved image record:", JSON.stringify(savedImage, null, 2));
+            logger.info(`Saved image to MinIO and DB: ${filename}`);
+            logger.info(`Image URL: ${imageUrl}`);
+            logger.debug("Saved image record:", JSON.stringify(savedImage, null, 2));
             
           } catch (error) {
-            logger.error(`❌ MinIO upload failed: ${error.message}`);
+            logger.error(`MinIO upload failed: ${error.message}`);
             
             // Fallback: เก็บใน local ถ้า MinIO ล้มเหลว
             const imgDir = "data/imgs";
@@ -520,21 +520,21 @@ app.post("/webhook/recieve/httpHosts", upload.any(), async (req, res) => {
               publicUrl: `/data/imgs/${filename}`
             };
 
-            logger.debug("🔍 Local image database insert data:", JSON.stringify(localImageData, null, 2));
+            logger.debug("Local image database insert data:", JSON.stringify(localImageData, null, 2));
 
             const savedImage = await prisma.accessImage.create({
               data: localImageData
             });
 
             savedImages.push(savedImage);
-            logger.warn(`💾 Fallback to local storage: ${filename}`);
-            logger.debug("🔍 Local saved image record:", JSON.stringify(savedImage, null, 2));
+            logger.warn(`Fallback to local storage: ${filename}`);
+            logger.debug("Local saved image record:", JSON.stringify(savedImage, null, 2));
           }
         } else {
           // ถ้าเป็น text field (เช่น event_log)
           const content = file.buffer.toString('utf8');
-          logger.info(`📄 Field ${file.fieldname}: ${content.substring(0, 100)}...`);
-          logger.debug(`🔍 Complete field ${file.fieldname}:`, JSON.stringify({
+          logger.info(`Field ${file.fieldname}: ${content.substring(0, 100)}...`);
+          logger.debug(`Complete field ${file.fieldname}:`, JSON.stringify({
             fieldname: file.fieldname,
             originalname: file.originalname,
             mimetype: file.mimetype,
@@ -545,8 +545,8 @@ app.post("/webhook/recieve/httpHosts", upload.any(), async (req, res) => {
       }
     }
 
-    logger.info(`✅ Processing complete - Event ID: ${accessEvent.id}, Images: ${savedImages.length}`);
-    logger.debug("🔍 Final processing summary:", JSON.stringify({
+    logger.info(`Processing complete - Event ID: ${accessEvent.id}, Images: ${savedImages.length}`);
+    logger.debug("Final processing summary:", JSON.stringify({
       eventId: accessEvent.id,
       totalImages: savedImages.length,
       imageDetails: savedImages.map(img => ({
@@ -560,8 +560,8 @@ app.post("/webhook/recieve/httpHosts", upload.any(), async (req, res) => {
     res.status(200).end();
 
   } catch (error) {
-    logger.error(`❌ Database error: ${error.message}`, error);
-    logger.debug("🔍 Error details:", JSON.stringify({
+    logger.error(`Database error: ${error.message}`, error);
+    logger.debug("Error details:", JSON.stringify({
       error: error.message,
       stack: error.stack,
       requestBody: req.body,
@@ -584,29 +584,29 @@ app.post("/webhook/recieve/httpHosts", upload.any(), async (req, res) => {
 app.use(express.text({ limit: '10mb', type: () => true }));
 
 app.listen(PORT, async () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📦 MinIO Console: https://minio-console.sylorqynvex.cc`);
-  logger.info(`🖼️  Images stored in bucket: ${BUCKET_NAME}`);
+  logger.info(`Server running on port ${PORT}`);
+  logger.info(`MinIO Console: https://minio-console.sylorqynvex.cc`);
+  logger.info(`Images stored in bucket: ${BUCKET_NAME}`);
   
   try {
     await prisma.$connect();
-    logger.info(`✅ Connected to database successfully`);
+    logger.info(`Connected to database successfully`);
   } catch (error) {
-    logger.error(`❌ Failed to connect to database: ${error.message}`);
+    logger.error(`Failed to connect to database: ${error.message}`);
   }
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  logger.info('🛑 Shutting down server...');
+  logger.info('Shutting down server...');
   await prisma.$disconnect();
-  logger.info('✅ Database disconnected');
+  logger.info('Database disconnected');
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  logger.info('🛑 Shutting down server...');
+  logger.info('Shutting down server...');
   await prisma.$disconnect();
-  logger.info('✅ Database disconnected');
+  logger.info('Database disconnected');
   process.exit(0);
 });
