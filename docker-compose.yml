@@ -12,10 +12,12 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-password123}
       - MINIO_BUCKET=${MINIO_BUCKET:-hikvision-images}
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
       - ./data:/data
     depends_on:
       - minio
+      - postgres
     restart: unless-stopped
 
   minio:
@@ -32,5 +34,19 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_hikvision
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=hikvision_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
 volumes:
   minio_data:
+  postgres_data:

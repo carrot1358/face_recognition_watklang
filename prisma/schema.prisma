@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AccessEvent {
+  id          Int      @id @default(autoincrement())
+  eventId     String?  @map("event_id")
+  eventType   String?  @map("event_type")
+  deviceId    String?  @map("device_id")
+  deviceName  String?  @map("device_name")
+  timestamp   DateTime @default(now())
+  rawData     Json?    @map("raw_data")
+  
+  // Access Control specific fields
+  personId    String?  @map("person_id")
+  personName  String?  @map("person_name")
+  cardNumber  String?  @map("card_number")
+  doorId      String?  @map("door_id")
+  doorName    String?  @map("door_name")
+  accessResult String? @map("access_result") // success, failed, etc.
+  
+  // Image information
+  images      AccessImage[]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  @@map("access_events")
+}
+
+model AccessImage {
+  id          Int      @id @default(autoincrement())
+  eventId     Int      @map("event_id")
+  filename    String
+  originalName String? @map("original_name")
+  mimeType    String   @map("mime_type")
+  size        Int
+  minioPath   String   @map("minio_path")
+  publicUrl   String   @map("public_url")
+  
+  // Relation
+  event       AccessEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@map("access_images")
+}
