@@ -3,4 +3,6 @@ node_modules/
 data/imgs/
 /src/generated/prisma
 
+dist/
+
 logs/

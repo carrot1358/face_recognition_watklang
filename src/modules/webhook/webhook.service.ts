@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventsService } from '../events/events.service';
 import { ImagesService } from '../images/images.service';
 import { StorageService } from '../storage/storage.service';
+import { EventsGateway } from '../events/events.gateway';
 import { WebhookPayloadDto, HikvisionEventDto } from './dto/webhook-payload.dto';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class WebhookService {
     private eventsService: EventsService,
     private imagesService: ImagesService,
     private storageService: StorageService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   async processHikvisionWebhook(
@@ -46,6 +48,12 @@ export class WebhookService {
         this.logger.log('Received body data:', JSON.stringify(body, null, 2));
       }
 
+      // Filter out junk events - only process person detection events
+      if (!this.isValidPersonDetectionEvent(eventData, files)) {
+        this.logger.log('Filtering out junk event - no person detection data');
+        return { eventId: 0, imageCount: 0 };
+      }
+
       // Map Hikvision data to our event format
       const accessControlEvent = eventData?.AccessControllerEvent;
       const mappedEventData = await this.eventsService.mapHikvisionData(eventData, accessControlEvent);
@@ -74,6 +82,17 @@ export class WebhookService {
       }
 
       this.logger.log(`Processing complete - Event ID: ${accessEvent.id}, Images: ${savedImages.length}`);
+
+      // Emit real-time WebSocket event for person detection
+      // Fetch the updated event with all images before emitting
+      try {
+        const updatedEvent = await this.eventsService.findOne(accessEvent.id);
+        this.eventsGateway.emitPersonDetection(updatedEvent);
+        this.logger.log(`WebSocket event emitted for person detection: ${accessEvent.id} with ${updatedEvent.images?.length || 0} images`);
+      } catch (wsError) {
+        this.logger.error(`Failed to emit WebSocket event: ${wsError.message}`);
+        // Don't fail the webhook processing if WebSocket fails
+      }
 
       return {
         eventId: accessEvent.id,
@@ -113,5 +132,46 @@ export class WebhookService {
       this.logger.error(`Test mapping error: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * Check if the event contains valid person detection data
+   * Filter out junk events that don't have person information
+   */
+  private isValidPersonDetectionEvent(
+    eventData: any,
+    files: Express.Multer.File[]
+  ): boolean {
+    const accessControlEvent = eventData?.AccessControllerEvent;
+
+    // Must have AccessControllerEvent data
+    if (!accessControlEvent) {
+      this.logger.debug('No AccessControllerEvent found');
+      return false;
+    }
+
+    // Must have person name (indicates person was detected/identified)
+    if (!accessControlEvent.name || accessControlEvent.name.trim() === '') {
+      this.logger.debug('No person name found in event');
+      return false;
+    }
+
+    // Check for images - either in picturesNumber field or actual files
+    const hasPictures = accessControlEvent.picturesNumber > 0;
+    const hasImageFiles = files && files.some(f => f.mimetype?.startsWith('image/'));
+
+    if (!hasPictures && !hasImageFiles) {
+      this.logger.debug('No images found in event');
+      return false;
+    }
+
+    // Check if it's a successful access (statusValue 0 = success)
+    if (accessControlEvent.statusValue !== 0) {
+      this.logger.debug(`Access failed - statusValue: ${accessControlEvent.statusValue}`);
+      return false;
+    }
+
+    this.logger.log(`Valid person detection event - Person: ${accessControlEvent.name}, Images: ${accessControlEvent.picturesNumber || 0}`);
+    return true;
   }
 }

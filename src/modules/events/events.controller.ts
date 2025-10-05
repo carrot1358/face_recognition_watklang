@@ -49,6 +49,40 @@ export class EventsController {
     return this.eventsService.findAll(query);
   }
 
+  @Get('recent/detections')
+  @ApiOperation({ summary: 'Get recent person detections with images' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of recent detections (max 50, default 20)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recent person detections retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        events: { type: 'array', items: { $ref: '#/components/schemas/EventEntity' } },
+        pagination: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            limit: { type: 'number' },
+            offset: { type: 'number' },
+            hasMore: { type: 'boolean' }
+          }
+        }
+      }
+    }
+  })
+  async getRecentDetections(@Query('limit') limit?: string) {
+    const queryLimit = limit ? Math.min(parseInt(limit), 50) : 20;
+    this.logger.log(`Getting recent person detections, limit: ${queryLimit}`);
+
+    const queryDto = new QueryEventsDto();
+    queryDto.limit = queryLimit;
+    queryDto.offset = 0;
+    queryDto.withImages = true; // Only return events with images
+
+    return this.eventsService.findAll(queryDto);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific access event by ID' })
   @ApiParam({ name: 'id', description: 'Event ID' })

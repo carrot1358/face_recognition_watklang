@@ -33,8 +33,50 @@ export class EventsService {
     try {
       this.logger.debug('Querying events:', JSON.stringify(queryDto, null, 2));
 
+      // Build where clause with filters
+      const whereClause: any = {};
+
+      if (queryDto.personName) {
+        whereClause.personName = {
+          contains: queryDto.personName,
+          mode: 'insensitive',
+        };
+      }
+
+      if (queryDto.personId) {
+        whereClause.personId = queryDto.personId;
+      }
+
+      if (queryDto.deviceName) {
+        whereClause.deviceName = {
+          contains: queryDto.deviceName,
+          mode: 'insensitive',
+        };
+      }
+
+      if (queryDto.accessResult) {
+        whereClause.accessResult = queryDto.accessResult;
+      }
+
+      if (queryDto.fromDate || queryDto.toDate) {
+        whereClause.createdAt = {};
+        if (queryDto.fromDate) {
+          whereClause.createdAt.gte = new Date(queryDto.fromDate);
+        }
+        if (queryDto.toDate) {
+          whereClause.createdAt.lte = new Date(queryDto.toDate);
+        }
+      }
+
+      if (queryDto.withImages) {
+        whereClause.images = {
+          some: {},
+        };
+      }
+
       const [events, total] = await Promise.all([
         this.prisma.accessEvent.findMany({
+          where: whereClause,
           include: {
             images: true,
           },
@@ -44,7 +86,9 @@ export class EventsService {
           take: queryDto.limit,
           skip: queryDto.offset,
         }),
-        this.prisma.accessEvent.count(),
+        this.prisma.accessEvent.count({
+          where: whereClause,
+        }),
       ]);
 
       const response = {
